@@ -2,9 +2,8 @@ using Pipe: @pipe
 
 rawValues = @pipe "./data.txt" |> readline;
 binary = ""
+expression = "+("
 
-# type
-# 4 literal value
 function hex2string(hex)
     if hex == '0'
         return "0000"
@@ -59,8 +58,6 @@ end
 for value in rawValues
     global binary *= hex2string(value)
 end
-println("rawValues ", rawValues)
-println("binary ", binary)
 
 part1 = 0
 function get_version(message)
@@ -131,57 +128,71 @@ function get_sub_packets(message)
     (value, message, 11)
 end
 
-function read_operator(message, expression)
+function read_operator(message)
     nb_bits = 0
     (length, message, bits) = get_length(message)
     nb_bits += bits
     if length == "0"
         (total, message, bits) = get_total_length(message)
         nb_bits += bits
-        println("total_length ", total)
         to_read = parse(Int, total)
         while to_read > 0
-            (packet, message, bits) = read_packet(message, expression)
+            (packet, message, bits) = read_packet(message)
             nb_bits += bits
             to_read -= bits
         end
     else
         (sub, message, bits) = get_sub_packets(message)
         nb_bits += bits
-        println("sub_packets ", sub)
         for i = 1:sub
-            (packet, message, bits) = read_packet(message, expression)
+            (packet, message, bits) = read_packet(message)
             nb_bits += bits
         end
     end
     ("", message, nb_bits)
 end
 
-function read_packet(message, expression)
+function read_packet(message)
     nb_bits = 0
     (version, message, bits) = get_version(message)
     nb_bits += bits
-    println("version ", version)
     (type, message, bits) = get_type(message)
     nb_bits += bits
-    println("type ", type)
     if type == 4
         (literal, message, bits) = read_literal(message)
         nb_bits += bits
-        println("literal ", literal)
-        expression *= string(literal)
+        global expression *= string(literal) * ","
     else
-        (op, message, bits) = read_operator(message, expression)
+        if type == 0
+            global expression *= "+("
+        elseif type == 1
+            global expression *= "*("
+        elseif type == 2
+            global expression *= "min("
+        elseif type == 3
+            global expression *= "max("
+        elseif type == 5
+            global expression *= ">("
+        elseif type == 6
+            global expression *= "<("
+        elseif type == 7
+            global expression *= "==("
+        end
+        (op, message, bits) = read_operator(message)
         nb_bits += bits
-        println("op ", op)
+        global expression *= ")"
+        if type == 5 || type == 6 || type == 7
+            global expression *= " ? 1 : 0"
+        end
+        global expression *= ","
     end
-    ("?", message, nb_bits)
+    ("done", message, nb_bits)
 end
 
-expression = ""
 while length(binary) > 8
-    packet = read_packet(binary, expression)
+    packet = read_packet(binary)
     global binary = packet[2]
 end
-println("binary ", binary)
+expression *= ")"
 println("part1 ", part1)
+println("part2 ", eval(Meta.parse(expression)))

@@ -1,29 +1,40 @@
 using Pipe: @pipe
+using Statistics
 
 rawValues = @pipe "./data.txt" |> readlines |> split.(_, "");
-opens = ["[", "(", "{", "<"];
-closes = ["]", ")", "}", ">"];
+opens = "[({<"
+
+opposite = Dict("(" => ")", "{" => "}", "[" => "]", "<" => ">");
+error_points = Dict(")" => 3, "]" => 57, "}" => 1197, ">" => 25137)
+closing_points = Dict(")" => 1, "]" => 2, "}" => 3, ">" => 4)
+part1 = 0
+part2 = []
+incompletes = []
 for line in rawValues
-    open = Dict()
-    close = Dict()
+    open = []
+    is_incomplete = true
     for symbol in line
         if contains(opens, symbol)
-            if haskey(open, symbol)
-                open[symbol] = open[symbol] + 1
-            else
-                open[symbol] = 1
-            end
+            push!(open, symbol)
         else
-            if contains(closes, symbol)
-                if haskey(close, symbol)
-                    close[symbol] = close[symbol] + 1
-                else
-                    close[symbol] = 1
-                end
+            if opposite[last(open)] == symbol
+                pop!(open)
+            else
+                global part1 += error_points[symbol]
+                is_incomplete = false
+                break
             end
         end
-
-        println("symbol ", symbol)
     end
+    if is_incomplete
+        sum = 0
+        while length(open) > 0
+            sum = 5 * sum + closing_points[opposite[last(open)]]
+            pop!(open)
+        end
+        push!(part2, sum)
+    end
+
 end
-# println("rawValues ", rawValues)
+println("part1 ", part1)
+println("part2 ", Int(median(part2)))
