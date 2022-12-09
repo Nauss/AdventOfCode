@@ -1,41 +1,31 @@
-use std::{collections::HashMap, f64::consts::SQRT_2};
+use std::collections::HashSet;
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy)]
 struct Position {
     x: i32,
     y: i32,
 }
 
 impl Position {
-    fn distance(self: &Position, p2: &Position) -> f64 {
-        let x = self.x - p2.x;
-        let y = self.y - p2.y;
-        ((x * x + y * y) as f64).sqrt()
+    fn distance(&self, point: &Position) -> f64 {
+        let x = self.x - point.x;
+        let y = self.y - point.y;
+        (x * x + y * y) as f64
     }
-    fn move_knot(self: &Position, other: &mut Position) {
+    fn move_knot(&self, other: &mut Position) {
         let dist = self.distance(other);
-        if dist > SQRT_2 {
-            let mut x = 0;
-            if self.x > other.x {
-                x = 1;
-            } else if self.x < other.x {
-                x = -1;
-            }
-            let mut y = 0;
-            if self.y > other.y {
-                y = 1;
-            } else if self.y < other.y {
-                y = -1;
-            }
+        if dist > 2.0 {
+            let x = (self.x - other.x).signum();
+            let y = (self.y - other.y).signum();
             other.x += x;
             other.y += y;
         }
     }
-    fn move_knots(self: &Position, knots: &mut Vec<Position>) {
-        let mut previous = self.clone();
+    fn move_knots(&self, knots: &mut [Position]) {
+        let mut previous = self;
         knots.iter_mut().for_each(|knot| {
             previous.move_knot(knot);
-            previous = knot.clone();
+            previous = knot;
         });
     }
 }
@@ -43,39 +33,24 @@ impl Position {
 fn apply(
     movement: &(&str, i32),
     head: &mut Position,
-    tail: &mut Vec<Position>,
-    visited: &mut HashMap<Position, bool>,
+    tail: &mut [Position],
+    visited: &mut HashSet<Position>,
 ) {
-    match movement {
-        ("R", distance) => {
-            for _ in 0..*distance {
-                head.x += 1;
-                head.move_knots(tail);
-                visited.entry(tail.last().unwrap().clone()).or_insert(true);
-            }
-        }
-        ("L", distance) => {
-            for _ in 0..*distance {
-                head.x -= 1;
-                head.move_knots(tail);
-                visited.entry(tail.last().unwrap().clone()).or_insert(true);
-            }
-        }
-        ("U", distance) => {
-            for _ in 0..*distance {
-                head.y += 1;
-                head.move_knots(tail);
-                visited.entry(tail.last().unwrap().clone()).or_insert(true);
-            }
-        }
-        ("D", distance) => {
-            for _ in 0..*distance {
-                head.y -= 1;
-                head.move_knots(tail);
-                visited.entry(tail.last().unwrap().clone()).or_insert(true);
-            }
-        }
+    let head_mover: fn(&mut Position) = match movement.0 {
+        "R" => |head| head.x += 1,
+        "L" => |head| head.x -= 1,
+        "U" => |head| head.y += 1,
+        "D" => |head| head.y -= 1,
         _ => panic!("Invalid movement"),
+    };
+    let mut do_move = || {
+        head_mover(head);
+        head.move_knots(tail);
+        visited.insert(*tail.last().unwrap());
+    };
+
+    for _ in 0..movement.1 {
+        do_move();
     }
 }
 
@@ -83,7 +58,7 @@ fn main() {
     let movements = include_str!("../data.txt")
         .lines()
         .map(|line| {
-            let mut splitted = line.split(" ");
+            let mut splitted = line.split(' ');
             let direction = splitted.next().unwrap();
             let distance = splitted.next().unwrap().parse::<i32>().unwrap();
             (direction, distance)
@@ -92,17 +67,17 @@ fn main() {
 
     let mut head = Position { x: 0, y: 0 };
     let mut tail = vec![Position { x: 0, y: 0 }];
-    let mut visited = HashMap::new();
+    let mut visited = HashSet::new();
     movements.iter().for_each(|movement| {
-        apply(&movement, &mut head, &mut tail, &mut visited);
+        apply(movement, &mut head, &mut tail, &mut visited);
     });
-    println!("Part 1: {}", visited.iter().count()); // 6243
+    println!("Part 1: {}", visited.len()); // 6243
 
     let mut head = Position { x: 0, y: 0 };
     let mut tail = vec![Position { x: 0, y: 0 }; 9];
-    let mut visited = HashMap::new();
+    let mut visited = HashSet::new();
     movements.iter().for_each(|movement| {
-        apply(&movement, &mut head, &mut tail, &mut visited);
+        apply(movement, &mut head, &mut tail, &mut visited);
     });
-    println!("Part 2: {}", visited.iter().count()); // 2630
+    println!("Part 2: {}", visited.len()); // 2630
 }
