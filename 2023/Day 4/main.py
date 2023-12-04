@@ -23,15 +23,20 @@ def part1(line):
     return (worth, nbWins)
 
 
+def countWinners(winners, index):
+    result = 1
+    for i in range(winners[index][1]):
+        result += countWinners(winners, index + i + 1)
+    return result
+
+
 def part2(lines, winners):
     totalNbCards = 0
     cards = copy.deepcopy(lines)
     while len(cards):
         line = cards.pop(0)
-        totalNbCards += 1
         cardIndex = int(card.match(line).group(1)) - 1
-        for i in range(winners[cardIndex][1]):
-            cards.append(lines[cardIndex + 1 + i])
+        totalNbCards += countWinners(winners, cardIndex)
     return totalNbCards
 
 
