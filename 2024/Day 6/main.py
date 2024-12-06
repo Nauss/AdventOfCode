@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import time
 
 def turnRight(direction):
     if direction == (0, -1):
@@ -27,28 +27,21 @@ def part1(grid):
 
         position = (x, y)
 
-    return len(visited)
+    return visited
 
 
-def doMove(grid, obstaclePosition):
-    obstaclePosition = (obstaclePosition[0] + 1, obstaclePosition[1])
-    if obstaclePosition[0] >= len(grid[0]):
-        obstaclePosition = (0, obstaclePosition[1] + 1)
-        if obstaclePosition[1] >= len(grid):
-            return None
+def doMove(grid, obstaclePosition, obstaclePositions):
+    if len(obstaclePositions) == 0:
+        return None
+    obstaclePosition = obstaclePositions.pop()
     return obstaclePosition
 
 
-def moveObstacle(grid, obstaclePosition):
+def moveObstacle(grid, obstaclePosition, obstaclePositions):
     # Reset the old position
     grid[obstaclePosition[1]][obstaclePosition[0]] = "."
     # Move the obstacle
-    obstaclePosition = doMove(grid, obstaclePosition)
-    while (
-        obstaclePosition != None
-        and grid[obstaclePosition[1]][obstaclePosition[0]] == "#"
-    ):
-        obstaclePosition = doMove(grid, obstaclePosition)
+    obstaclePosition = doMove(grid, obstaclePosition, obstaclePositions)
 
     if obstaclePosition == None:
         return None
@@ -58,8 +51,8 @@ def moveObstacle(grid, obstaclePosition):
     return obstaclePosition
 
 
-def part2(grid):
-    obstaclePosition = (0, 0)
+def part2(grid, obstaclePositions):
+    obstaclePosition = obstaclePositions.pop()
     grid[obstaclePosition[1]][obstaclePosition[0]] = "#"
     nbLoops = 0
     while True:
@@ -80,7 +73,7 @@ def part2(grid):
 
             position = (x, y)
 
-        obstaclePosition = moveObstacle(grid, obstaclePosition)
+        obstaclePosition = moveObstacle(grid, obstaclePosition, obstaclePositions)
         if obstaclePosition == None:
             break
 
@@ -92,7 +85,9 @@ path = Path(__file__).parent / "./data.txt"
 with path.open() as f:
     # Read all lines
     grid = [list(line.strip()) for line in f]
-    result = part1(grid)
-    print("part1: ", result)
-    result = part2(grid)
+    visited = part1(grid)
+    print("part1: ", len(visited))
+    start = time.time()
+    result = part2(grid, visited)
+    print("Runtime: ", time.time() - start)
     print("part2: ", result)
