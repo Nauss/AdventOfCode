@@ -114,7 +114,6 @@ with path.open() as f:
     diskMap = [line.strip() for line in f][0]
     result = part1(diskMap)
     print("part1: ", result)
-    # 90180292337 too low
     # start = time.time()
     result = part2(diskMap)
     print("part2: ", result)
