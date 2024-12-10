@@ -51,10 +51,9 @@ def findTrails2(result, visited, map, x, y):
         pos = positions.pop()
         visited[pos] = True
         if map[pos[1]][pos[0]] == 0:
-            if pos in visited:
-                if pos not in result:
-                    result[pos] = 0
-                result[pos] += 1
+            if pos not in result:
+                result[pos] = 0
+            result[pos] += 1
         else:
             findTrails2(result, visited, map, pos[0], pos[1])
 
