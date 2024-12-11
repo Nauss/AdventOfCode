@@ -2,80 +2,49 @@ from pathlib import Path
 import time
 
 
-def getNextStep(map, x, y):
-    sizeX = len(map[0])
-    sizeY = len(map)
-
-    value = map[y][x] - 1
-    positions = []
-    if y > 0 and map[y - 1][x] == value:
-        positions.append((x, y - 1))
-    if y < sizeY - 1 and map[y + 1][x] == value:
-        positions.append((x, y + 1))
-    if x > 0 and map[y][x - 1] == value:
-        positions.append((x - 1, y))
-    if x < sizeX - 1 and map[y][x + 1] == value:
-        positions.append((x + 1, y))
-
-    return positions
+def applyRules(value):
+    strValue = str(value)
+    if value == 0:
+        return [1]
+    if len(strValue) % 2 == 0:
+        return [
+            int(strValue[: len(strValue) // 2]),
+            int(strValue[len(strValue) // 2 :]),
+        ]
+    else:
+        return [value * 2024]
 
 
-def findTrails(result, visited, map, x, y):
-    positions = getNextStep(map, x, y)
-    while len(positions):
-        pos = positions.pop()
-        if pos in visited:
-            continue
-        visited[pos] = True
-        if map[pos[1]][pos[0]] == 0:
-            if pos not in result:
-                result[pos] = 0
-            result[pos] += 1
-        else:
-            findTrails(result, visited, map, pos[0], pos[1])
+def getCache(value, cache, blinks):
+    if (value, blinks) in cache:
+        return cache[(value, blinks)]
+    if blinks == 0:
+        return 1
+
+    applied = applyRules(value)
+    cache[(value, blinks)] = getCache(applied[0], cache, blinks - 1)
+    if len(applied) > 1:
+        cache[(value, blinks)] += getCache(applied[1], cache, blinks - 1)
+    return cache[(value, blinks)]
 
 
-def part1(map):
-    result = {}
-    for y in range(len(map)):
-        for x in range(len(map[y])):
-            if map[y][x] == 9:
-                visited = {}
-                findTrails(result, visited, map, x, y)
-    return sum(result.values())
+def solve(line, cache, blinks):
+    nbStones = 0
+    for i in range(len(line)):
+        nbStones += getCache(line[i], cache, blinks)
 
-
-def findTrails2(result, visited, map, x, y):
-    positions = getNextStep(map, x, y)
-    while len(positions):
-        pos = positions.pop()
-        visited[pos] = True
-        if map[pos[1]][pos[0]] == 0:
-            if pos not in result:
-                result[pos] = 0
-            result[pos] += 1
-        else:
-            findTrails2(result, visited, map, pos[0], pos[1])
-
-
-def part2(map):
-    result = {}
-    for y in range(len(map)):
-        for x in range(len(map[y])):
-            if map[y][x] == 9:
-                visited = {}
-                findTrails2(result, visited, map, x, y)
-    return sum(result.values())
+    return nbStones
 
 
 # Open data.txt file
 path = Path(__file__).parent / "./data.txt"
 with path.open() as f:
     # Read all lines
-    map = [list(int(i) for i in line.strip()) for line in f]
-    result = part1(map)
+    line = [int(x) for x in [line.strip().split(" ") for line in f][0]]
+    cache = {}
+    result = solve(line, cache, 25)
     print("part1: ", result)
-    # start = time.time()
-    result = part2(map)
+    start = time.time()
+    result = solve(line, cache, 75)
     print("part2: ", result)
-    # print("Runtime: ", time.time() - start)
+    print("Runtime: ", time.time() - start)
