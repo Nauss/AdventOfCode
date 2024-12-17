@@ -1,5 +1,6 @@
 from pathlib import Path
 import time
+import functools
 
 
 # Utils
@@ -13,6 +14,16 @@ def getCombo(memory):
         return memory["C"]
     else:
         return operand
+
+
+def setCombo(memory, value):
+    operand = memory["program"][memory["pc"] + 1]
+    if operand == 4:
+        memory["A"] = value
+    elif operand == 5:
+        memory["B"] = value
+    elif operand == 6:
+        memory["C"] = value
 
 
 def getLiteral(memory):
@@ -67,68 +78,12 @@ def cdv(memory):
     memory["pc"] += 2
 
 
-# Inverse instructions
-def adv_inv(memory):
-    combo = getCombo(memory)
-    memory["A"] = memory["A"] * pow(2, combo)
-    memory["pc"] -= 2
-
-
-def bxl_inv(memory):
-    memory["B"] = memory["B"] ^ getLiteral(memory)
-    memory["pc"] -= 2
-
-
-def bst_inv(memory):
-    combo = getCombo(memory)
-    memory["B"] = combo % 8
-    memory["pc"] -= 2
-
-
-def jnz_inv(memory):
-    if memory["A"] == 0:
-        memory["pc"] -= 2
-    else:
-        memory["pc"] = getLiteral(memory)
-
-
-def bxc_inv(memory):
-    memory["B"] = memory["B"] ^ memory["C"]
-    memory["pc"] -= 2
-
-
-def out_inv(memory):
-    combo = getCombo(memory)
-    del memory["output"][-1]
-    memory["pc"] -= 2
-
-
-def bdv_inv(memory):
-    combo = getCombo(memory)
-    memory["B"] = memory["A"] * pow(2, combo)
-    memory["pc"] -= 2
-
-
-def cdv_inv(memory):
-    combo = getCombo(memory)
-    memory["C"] = memory["A"] * pow(2, combo)
-    memory["pc"] -= 2
-
-
-def part1():
+def part1(start):
     memory = {
-        "A": 33940147,
+        "A": start,
         "B": 0,
         "C": 0,
         "program": [2, 4, 1, 5, 7, 5, 1, 6, 4, 2, 5, 5, 0, 3, 3, 0],
-        "pc": 0,
-        "output": [],
-    }
-    memory = {
-        "A": 117440,
-        "B": 0,
-        "C": 0,
-        "program": [0, 3, 5, 4, 3, 0],
         "pc": 0,
         "output": [],
     }
@@ -151,62 +106,45 @@ def part1():
         elif program[memory["pc"]] == 7:
             cdv(memory)
 
-    return ",".join([str(o) for o in memory["output"]])
+    return memory["output"]
+
+
+@functools.cache
+def compute(A):
+    B = A % 8
+    B = B ^ 5
+    C = A // pow(2, B)
+    B = B ^ 6
+    B = B ^ C
+    return B % 8
+
+
+def arrayEndsWith(array, end):
+    for i in range(len(end)):
+        if array[-1 - i] != end[-1 - i]:
+            return False
+    return True
 
 
 def part2():
-    memory = {
-        "A": 10,
-        "B": 0,
-        "C": 0,
-        "program": [2, 4, 1, 5, 7, 5, 1, 6, 4, 2, 5, 5, 0, 3, 3, 0],
-        "pc": 0,
-        "output": [2, 4, 1, 5, 7, 5, 1, 6, 4, 2, 5, 5, 0, 3, 3, 0],
-    }
-    # memory = {
-    #     "A": 0,
-    #     "B": 0,
-    #     "C": 0,
-    #     "program": [0, 3, 5, 4, 3, 0],
-    #     "pc": 0,
-    #     "output": [0, 3, 5, 4, 3, 0],
-    # }
-    memory["pc"] = len(memory["output"]) - 1
-    program = memory["program"]
-    while memory["pc"] >= 0:
-        if program[memory["pc"]] == 0:
-            adv_inv(memory)
-        elif program[memory["pc"]] == 1:
-            bxl_inv(memory)
-        elif program[memory["pc"]] == 2:
-            bst_inv(memory)
-        elif program[memory["pc"]] == 3:
-            jnz_inv(memory)
-        elif program[memory["pc"]] == 4:
-            bxc_inv(memory)
-        elif program[memory["pc"]] == 5:
-            out_inv(memory)
-        elif program[memory["pc"]] == 6:
-            bdv_inv(memory)
-        elif program[memory["pc"]] == 7:
-            cdv_inv(memory)
-
-    return ",".join([str(o) for o in memory["output"]])
+    goal = [2, 4, 1, 5, 7, 5, 1, 6, 4, 2, 5, 5, 0, 3, 3, 0]
+    a = 0
+    gc = len(goal) - 1
+    while True:
+        if compute(a) == goal[gc] and arrayEndsWith(goal, part1(a)):
+            gc -= 1
+            if gc == -1:
+                return a
+            a = 8 * a
+            continue
+        a += 1
 
 
 # Open data.txt file
-# memory = {
-#     "A": 729,
-#     "B": 0,
-#     "C": 0,
-#     "program": [0, 1, 5, 4, 3, 0],
-#     "pc": 0,
-#     "output": [],
-# }
-# result = part1()
-# print("part1: ", result)
-# start = time.time()
+
+result = part1(33940147)
+print("part1: ", result)
+start = time.time()
 result = part2()
 print("part2: ", result)
-# print("Runtime: ", time.time() - start)
-# 33940147 too low
+print("Runtime: ", time.time() - start)
