@@ -2,46 +2,63 @@ from pathlib import Path
 import re
 
 
-def getTowels(current, design, towels):
-
-    return result
-
-
 def getNextTowels(currents, towels, design):
-    nexts = []
+    maxTowelsLen = max([len(x) for x in towels])
+    nexts = set()
+    maxLen = 0
     for current in currents:
-        dIndex = len(current)
-        size = 1
+        dIndex = current
+        size = min(maxTowelsLen, len(design) - dIndex)
         while True:
-            if dIndex + size > len(design):
+            if size == 0:
                 break
             if design[dIndex : dIndex + size] in towels:
-                nexts.append(current + design[dIndex : dIndex + size])
-            size += 1
-    return nexts
+                next = current + size
+                if not design[0 : current + size] in towels:
+                    towels.add(design[0 : current + size])
+                if next > maxLen:
+                    maxLen = next
+                nexts.add(next)
+            size -= 1
+    return nexts, maxLen
 
 
 def part1(towels, designs):
-    impossible = 0
+    possible = 0
     for design in designs:
-        currents = [""]
+        currents = set([0])
         while True:
-            nexts = getNextTowels(currents, towels, design)
+            nexts, maxLen = getNextTowels(currents, towels, design)
             if len(nexts) == 0:
-                impossible += 1
                 break
-            if max([len(x) for x in nexts]) == len(design):
+            if maxLen == len(design):
                 # Found
+                possible += 1
                 break
             currents = nexts
-    return len(designs) - impossible
+    return possible
 
 
-def part2(line):
-    list1 = [int(x[0]) for x in lines]
-    list2 = [int(x[1]) for x in lines]
-    similarity = [x * list2.count(x) for x in list1]
-    return sum(similarity)
+def findNext(towels, cache, design):
+    if design == "":
+        return 1
+    if design not in cache:
+        result = 0
+        for towel in towels:
+            if design.startswith(towel):
+                nextDesign = design[len(towel) :]
+                result += findNext(towels, cache, nextDesign)
+        cache[design] = result
+    return cache[design]
+
+
+def part2(towels, designs):
+    cache = {}
+    total = 0
+    for design in designs:
+        total += findNext(towels, cache, design)
+
+    return total
 
 
 # Open data.txt file
@@ -54,6 +71,6 @@ with path.open() as f:
     result = part1(towels, designs)
     print("part1: ", result)
     # start = time.time()
-    # result = part2(lines)
-    # print("part2: ", result)
+    result = part2(towels, designs)
+    print("part2: ", result)
     # print("Runtime: ", time.time() - start)
